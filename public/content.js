@@ -13,6 +13,22 @@ function createDownloadButton() {
   return downloadBtn;
 }
 
+function getVideoName() {
+  const h1 = document.querySelector("#vod_header > h1");
+  let rawTitle = "";
+  h1.childNodes.forEach((node) => {
+    if (node.nodeType === 3) {
+      rawTitle += node.textContent.trim();
+    }
+  });
+
+  if (rawTitle.length === 0) {
+    return "video.mp4";
+  } else {
+    return rawTitle + ".mp4";
+  }
+}
+
 const header = document.querySelector("#vod_header");
 if (header) {
   chrome.runtime.sendMessage({ type: "enableTracking" });
@@ -30,14 +46,30 @@ if (header) {
 }
 
 async function enqueueDownload(mediaUrl) {
-  const h1 = document.querySelector("#vod_header > h1");
+  try {
+    const myHeaders = new Headers();
+    myHeaders.append("Content-Type", "application/json");
 
-  let rawTitle = "";
-  h1.childNodes.forEach((node) => {
-    if (node.nodeType === 3) {
-      rawTitle += node.textContent.trim();
-    }
-  });
+    const raw = JSON.stringify({
+      mediaUrl: mediaUrl,
+      installationId: await chrome.storage.local.get("installationId"),
+    });
+
+    const requestOptions = {
+      method: "POST",
+      headers: myHeaders,
+      body: raw,
+      redirect: "follow",
+    };
+
+    fetch(
+      "https://func-coursemosdown-c4f5budye9gthda4.koreacentral-01.azurewebsites.net/api/enqueueVideoDownload",
+      requestOptions
+    )
+      .then((response) => response.text())
+      .then((result) => console.log(result))
+      .catch((error) => console.error(error));
+  } catch (ex) {}
 
   console.log("rawtitle", rawTitle, mediaUrl);
 }
