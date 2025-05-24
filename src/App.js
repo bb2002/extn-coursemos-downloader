@@ -58,19 +58,7 @@ const theme = createTheme({
 
 function App() {
   const [instId, setInstId] = useState(null);
-
-  useEffect(() => {
-    // chrome.storage.local.get("installationId", ({ installationId }) => {
-    //   if (installationId) {
-    //     setInstId(installationId);
-    //   } else {
-    //     const newId = crypto.randomUUID();
-    //     chrome.storage.local.set({ installationId: newId }).then();
-    //     setInstId(newId);
-    //   }
-    // });
-    setInstId("3a030ac9-26c5-43f0-b86c-c58437fd1e0c");
-  }, []);
+  const [files, setFiles] = useState([]);
 
   const { data, error, isLoading } = useSWR(
     instId
@@ -82,8 +70,88 @@ function App() {
     }
   );
 
-  const handleDownload = (blobId) => {
-    console.log("다시 다운로드:", blobId);
+  useEffect(() => {
+    chrome.storage.local.get("installationId", ({ installationId }) => {
+      if (installationId) {
+        setInstId(installationId);
+      } else {
+        const newId = crypto.randomUUID();
+        chrome.storage.local.set({ installationId: newId }).then();
+        setInstId(newId);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const allRequests = await chrome.storage.local.get(null);
+      const files = [];
+
+      for (const d of data) {
+        const requestItem = allRequests[d.requestId];
+        if (d.status === "COMPLETED") {
+          const requestOptions = {
+            method: "GET",
+            redirect: "follow",
+          };
+          const res = await fetch(
+            "https://func-coursemosdown-c4f5budye9gthda4.koreacentral-01.azurewebsites.net/api/getVideoDownloadUrl?blobId=" +
+              d.blobId,
+            requestOptions
+          );
+
+          if (res.ok) {
+            const json = await res.json();
+            if (json && json.sasUrl) {
+              files.push({
+                ...d,
+                ...requestItem,
+                sasUrl: json.sasUrl,
+              });
+            }
+          }
+        } else {
+          files.push({
+            ...d,
+            ...requestItem,
+          });
+        }
+      }
+
+      for (const f of files) {
+        if (f.status === "COMPLETED" && f.downloaded === false) {
+          f.downloaded = true;
+          allRequests[f.requestId] = {
+            ...allRequests[f.requestId],
+            downloaded: true,
+          };
+          chrome.downloads.download(
+            {
+              url: f.sasUrl,
+              filename: f.filename,
+              conflictAction: "uniquify",
+              saveAs: false,
+            },
+            null
+          );
+        }
+      }
+
+      await chrome.storage.local.set(allRequests);
+      setFiles(files);
+    })();
+  }, [data]);
+
+  const handleDownload = (sasUrl, filename) => {
+    chrome.downloads.download(
+      {
+        url: sasUrl,
+        filename: filename,
+        conflictAction: "uniquify",
+        saveAs: false,
+      },
+      null
+    );
   };
 
   return (
@@ -160,8 +228,8 @@ function App() {
               },
             }}
           >
-            {data &&
-              data.map((file) => (
+            {files &&
+              files.map((file) => (
                 <ListItem
                   key={file.requestId}
                   sx={{
@@ -190,7 +258,7 @@ function App() {
                           whiteSpace: "nowrap",
                         }}
                       >
-                        {"이름 필요.mp4"}
+                        {file.filename}
                       </Typography>
                     }
                     secondary={
@@ -213,7 +281,9 @@ function App() {
                           <Button
                             size="small"
                             variant="text"
-                            onClick={() => handleDownload(file.blobId)}
+                            onClick={() =>
+                              handleDownload(file.sasUrl, file.filename)
+                            }
                             sx={{
                               fontSize: 12,
                               minWidth: "auto",

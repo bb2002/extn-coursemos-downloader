@@ -46,66 +46,40 @@ if (header) {
 }
 
 async function enqueueDownload(mediaUrl) {
-  try {
-    const myHeaders = new Headers();
-    myHeaders.append("Content-Type", "application/json");
+  chrome.runtime.sendMessage(
+    {
+      type: "enqueueDownload",
+      mediaUrl,
+    },
+    async (resp) => {
+      if (resp.error) {
+        if (resp.error === "TooFast") {
+          alert("요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.");
+        } else if (resp.error === "NoInstallationId") {
+          alert("설치 ID가 없습니다. 확장 프로그램을 재설치하세요.");
+        } else {
+          alert("enqueue 에 실패했습니다.");
+          console.error(resp.error);
+        }
+        return;
+      }
 
-    const raw = JSON.stringify({
-      mediaUrl: mediaUrl,
-      installationId: await chrome.storage.local.get("installationId"),
-    });
+      const json = resp.data;
+      if (!json.blobId) {
+        alert("enqueue 응답에 blobId가 없습니다.");
+        return;
+      }
 
-    const requestOptions = {
-      method: "POST",
-      headers: myHeaders,
-      body: raw,
-      redirect: "follow",
-    };
-
-    fetch(
-      "https://func-coursemosdown-c4f5budye9gthda4.koreacentral-01.azurewebsites.net/api/enqueueVideoDownload",
-      requestOptions
-    )
-      .then((response) => response.text())
-      .then((result) => console.log(result))
-      .catch((error) => console.error(error));
-  } catch (ex) {}
-
-  console.log("rawtitle", rawTitle, mediaUrl);
-}
-
-/*async function fetchMediaUrl(mediaUrl) {
-  const url = mediaUrl.endsWith(".mp4")
-    ? mediaUrl
-    : "http://localhost:7071/api/DownloadTrigger?mediaUrl=" + mediaUrl;
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      alert("다운로드 API 호출에 실패했습니다.");
-      return;
+      await chrome.storage.local.set({
+        [json.requestId]: {
+          blobId: json.blobId,
+          filename: getVideoName(),
+          downloaded: false,
+        },
+      });
     }
-
-    const blob = await response.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = "video.mp4";
-    document.body.appendChild(a);
-
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(blobUrl);
-  } catch (error) {
-    alert(error);
-  } finally {
-    downloadable((e) => {
-      e.preventDefault();
-      downloading();
-      fetchMediaUrl(mediaUrl);
-    });
-  }
+  );
 }
-  */
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "enableDownloadButton") {
