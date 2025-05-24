@@ -10,6 +10,13 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
 });
 
+chrome.runtime.onMessage.addListener((message, sender) => {
+  if (message.type === "enableTracking" && sender.tab?.id) {
+    trackedTabIds.add(sender.tab.id);
+    messageSentTabs.delete(sender.tab.id);
+  }
+});
+
 chrome.webRequest.onBeforeRequest.addListener(
   ({ url, tabId }) => {
     if (trackedTabIds.has(tabId) && !messageSentTabs.has(tabId)) {

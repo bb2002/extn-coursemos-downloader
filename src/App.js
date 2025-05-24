@@ -24,7 +24,8 @@ import CssBaseline from "@mui/material/CssBaseline";
 
 const fetcher = (...args) => fetch(...args).then((res) => res.json());
 
-const HOST = "http://localhost:7071";
+const HOST =
+  "https://func-coursemosdown-c4f5budye9gthda4.koreacentral-01.azurewebsites.net";
 
 const theme = createTheme({
   palette: {
@@ -268,7 +269,7 @@ function App() {
                 <ListItemText
                   primary={
                     <Typography variant="body2" color="error" align="center">
-                      데이터를 불러올 수 없습니다
+                      네트워크 또는 서버 오류입니다.
                     </Typography>
                   }
                 />

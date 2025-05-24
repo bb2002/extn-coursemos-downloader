@@ -1,56 +1,48 @@
-/*
 function createDownloadButton() {
-  const linkBtn = document.createElement("a");
-  linkBtn.id = "coursemos-download-btn";
-  linkBtn.href = "#";
-  linkBtn.textContent = "강의 다운로드";
-  return linkBtn;
+  const downloadBtn = document.createElement("button");
+  downloadBtn.id = "coursemos-download-btn";
+  downloadBtn.className = "vod_close";
+
+  const iconImg = document.createElement("img");
+  iconImg.src = chrome.runtime.getURL("icons/download.svg");
+  iconImg.alt = "Download";
+  iconImg.width = 24;
+  iconImg.height = 24;
+
+  downloadBtn.appendChild(iconImg);
+  return downloadBtn;
 }
 
-function downloadable(handler) {
-  const btn = document.querySelector("#coursemos-download-btn");
-  if (btn) {
-    btn.disabled = false;
-    btn.textContent = "강의 다운로드";
-    btn.style.cursor = "pointer";
-    btn.onclick = handler;
+const header = document.querySelector("#vod_header");
+if (header) {
+  chrome.runtime.sendMessage({ type: "enableTracking" });
+
+  const downloadBtn = createDownloadButton();
+  downloadBtn.onclick = () => {
+    alert("아직 준비되지 않았습니다. 영상을 재생하고 잠시 기다려주세요.");
+  };
+  const secondChild = header.children[2];
+  if (secondChild) {
+    header.insertBefore(downloadBtn, secondChild);
+  } else {
+    header.appendChild(downloadBtn);
   }
 }
 
-function downloading() {
-  const btn = document.querySelector("#coursemos-download-btn");
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = "처리 중 (최대 2분이 소요됩니다)";
-    btn.style.cursor = "default";
-    btn.onclick = (e) => {
-      e.preventDefault();
-    };
-  }
-}
+async function enqueueDownload(mediaUrl) {
+  const h1 = document.querySelector("#vod_header > h1");
 
-window.addEventListener("load", () => {
-  const header = document.querySelector("#vod_header");
-  if (header) {
-    // 해당 탭 트래킹 시작
-    chrome.runtime.sendMessage({ type: "enableTracking" });
-
-    // 다운로드 버튼 생성
-    const linkBtn = createDownloadButton();
-    linkBtn.onclick = (e) => {
-      e.preventDefault();
-      alert("아직 준비되지 않았습니다. 영상을 재생하고 잠시 기다려주세요.");
-    };
-    const thirdChild = header.children[2];
-    if (thirdChild) {
-      header.insertBefore(linkBtn, thirdChild);
-    } else {
-      header.appendChild(linkBtn);
+  let rawTitle = "";
+  h1.childNodes.forEach((node) => {
+    if (node.nodeType === 3) {
+      rawTitle += node.textContent.trim();
     }
-  }
-});
+  });
 
-async function fetchMediaUrl(mediaUrl) {
+  console.log("rawtitle", rawTitle, mediaUrl);
+}
+
+/*async function fetchMediaUrl(mediaUrl) {
   const url = mediaUrl.endsWith(".mp4")
     ? mediaUrl
     : "http://localhost:7071/api/DownloadTrigger?mediaUrl=" + mediaUrl;
@@ -81,19 +73,16 @@ async function fetchMediaUrl(mediaUrl) {
     });
   }
 }
+  */
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "enableDownloadButton") {
+    const mediaUrl = message.mediaUrl;
+    console.log("ready", mediaUrl);
+
     const btn = document.querySelector("#coursemos-download-btn");
-    if (btn) {
-      const mediaUrl = message.mediaUrl;
-      downloadable((e) => {
-        e.preventDefault();
-        downloading();
-        fetchMediaUrl(mediaUrl);
-      });
-    }
+    btn.onclick = async () => {
+      await enqueueDownload(mediaUrl);
+    };
   }
 });
-
-*/
