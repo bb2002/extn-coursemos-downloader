@@ -13,6 +13,24 @@ function createDownloadButton() {
   return downloadBtn;
 }
 
+function sanitizeFilename(filename) {
+  if (typeof filename !== "string") return "";
+  const controlRe = /\p{Cc}/gu;
+  const illegalRe = /[<>:"/\\|?*]/g;
+  const reservedRe = /^[. ]+$/;
+  const windowsReservedRe =
+    /^(?:(?:con|prn|aux|nul|com[1-9]|lpt[1-9]))(\..*)?$/i;
+  const trailingRe = /[. ]+$/;
+
+  let name = filename
+    .replace(controlRe, "")
+    .replace(illegalRe, "")
+    .replace(reservedRe, "")
+    .replace(windowsReservedRe, "")
+    .replace(trailingRe, "");
+
+  return name;
+}
 function getVideoName() {
   const h1 = document.querySelector("#vod_header > h1");
   let rawTitle = "";
@@ -22,10 +40,11 @@ function getVideoName() {
     }
   });
 
-  if (rawTitle.length === 0) {
+  const cleanTitle = sanitizeFilename(rawTitle);
+  if (cleanTitle.length === 0) {
     return "video.mp4";
   } else {
-    return rawTitle + ".mp4";
+    return cleanTitle + ".mp4";
   }
 }
 

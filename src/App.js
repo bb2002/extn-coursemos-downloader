@@ -83,6 +83,10 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (!data) {
+      return;
+    }
+
     (async () => {
       const allRequests = await chrome.storage.local.get(null);
       const files = [];
@@ -138,6 +142,7 @@ function App() {
       }
 
       await chrome.storage.local.set(allRequests);
+      console.log(files);
       setFiles(files);
     })();
   }, [data]);
@@ -235,6 +240,9 @@ function App() {
                   sx={{
                     py: 1,
                     px: 1.5,
+                  }}
+                  style={{
+                    height: 72,
                   }}
                 >
                   <ListItemIcon sx={{ minWidth: 28 }}>
