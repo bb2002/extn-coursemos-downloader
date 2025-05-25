@@ -3,6 +3,7 @@
   "name": "Coursemos Downloader",
   "version": "1.0.0",
   "description": "코스모스 계열 LMS 동영상 다운로드 도구",
+  "default_locale": "en",
   "permissions": ["webRequest", "scripting", "tabs", "storage", "downloads"],
   "action": {
     "default_popup": "index.html",
